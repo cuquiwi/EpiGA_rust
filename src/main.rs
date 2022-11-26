@@ -3,14 +3,38 @@ use std::{fs::File, io::{BufReader, BufRead}};
 use nalgebra::{point, Point2};
 use regex::Regex;
 use std::error::Error;
+use clap::Parser;
+
+/// Epigenetic implementation to solve TSP
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+   /// Name of the file containing the TSP problem
+   #[arg(short, long)]
+   problem: String,
+
+   /// Max epochs to generate populations
+   #[arg(short, long, default_value_t = 200)]
+   epochsmax: usize,
+
+   /// Number of individuals
+   #[arg(short, long, default_value_t = 100)]
+   individuals: u16,
+
+   /// Number of cells in each individual
+   #[arg(short, long, default_value_t = 10)]
+   cells: u16,
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let coords = load_problem_file("problems/gr666.tsp")?;
+    let args = Args::parse();
+
+    let coords = load_problem_file(&args.problem)?;
 
     let mut search = EpigeneticSearch::init(
-        100,
-        10,
+        args.individuals,
+        args.cells,
         0.02,
         2,
         vec![
@@ -18,7 +42,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Mechanisms::Imprinting(0.2),
             Mechanisms::Reprogramming(0.1)
             ],
-        200,
+        args.epochsmax,
     );
     
     search.call(coords, None)?;
