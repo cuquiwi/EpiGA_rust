@@ -24,6 +24,10 @@ struct Args {
    /// Number of cells in each individual
    #[arg(short, long, default_value_t = 10)]
    cells: u16,
+
+   // Optional optimal solution file
+   #[arg(long)]
+   solution:Option<String>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -31,6 +35,20 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let coords = load_problem_file(&args.problem)?;
+
+    let sol = match args.solution {
+        Some(f) => {
+            let a = match load_solution_file(&f) {
+                Ok(s) => Some(s),
+                Err(msg) =>{
+                    println!("{}",msg);
+                    None
+                },
+            };
+            a
+        },
+        None => None,
+    };
 
     let mut search = EpigeneticSearch::init(
         args.individuals,
@@ -43,6 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Mechanisms::Reprogramming(0.1)
             ],
         args.epochsmax,
+        sol,
     );
     
     search.call(coords, None)?;
@@ -56,7 +75,7 @@ fn load_problem_file(file_name: &str) -> Result<Vec<Point2<f32>>, Box<dyn Error>
     let reader = BufReader::new(file);
     let mut coords: Vec<Point2<f32>> = Vec::new();
 
-    let re = Regex::new(r"^[ \t]*\d+ \d+(\.\d+)? \d+(\.\d+)?[ \t]*$").unwrap();
+    let re = Regex::new(r"^[ \t]*\d+ -?\d+(\.\d+)? -?\d+(\.\d+)?[ \t]*$").unwrap();
     for line in reader.lines() {
         if line.is_ok(){
             let text = line?;
@@ -71,6 +90,28 @@ fn load_problem_file(file_name: &str) -> Result<Vec<Point2<f32>>, Box<dyn Error>
             coords.push(point![p1,p2]);
         }
     }
-
     Ok(coords)
+}
+
+fn load_solution_file(file_name: &str) -> Result<Vec<usize>, Box<dyn Error>> {
+
+    let file = File::open(file_name)?;
+    let reader = BufReader::new(file);
+    let mut sol: Vec<usize> = Vec::new();
+
+    let re = Regex::new(r"^[ \t]*\d+[ \t]*$").unwrap();
+    for line in reader.lines() {
+        if line.is_ok(){
+            let text = line?;
+            if !re.is_match(text.trim()){
+                continue;
+            }
+
+            let digits_text = text.trim();
+            let p1: usize = digits_text.parse::<usize>()?;
+            sol.push(p1-1);
+        }
+    }
+
+    Ok(sol)
 }

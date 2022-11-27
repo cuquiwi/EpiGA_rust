@@ -28,6 +28,7 @@ pub struct EpigeneticSearch {
     pub mechanisms: Vec<Mechanisms>,
     pub max_epochs: usize,
     pub distances: DMatrix<f32>,
+    pub best_solution: Option<Vec<usize>>,
 }
 
 impl EpigeneticSearch {
@@ -45,7 +46,7 @@ impl EpigeneticSearch {
     pub fn init(individual_nb: u16, cells_nb:u16,
         nucleo_prob:f32,
         nucleo_rad: i32, mechanisms:Vec<Mechanisms>,
-        max_epochs: usize) -> EpigeneticSearch {
+        max_epochs: usize, best_sol:Option<Vec<usize>>) -> EpigeneticSearch {
             EpigeneticSearch { 
                 individual_nb: individual_nb,
                 cells_nb: cells_nb,
@@ -54,6 +55,7 @@ impl EpigeneticSearch {
                 mechanisms: mechanisms,
                 max_epochs: max_epochs,
                 distances: DMatrix::<f32>::zeros(1,1),
+                best_solution:best_sol,
             }
         }
 
@@ -66,7 +68,6 @@ impl EpigeneticSearch {
     pub fn call(&mut self, coordinates:Vec<Point2<f32>>, _optimum_path:Option<Vec<usize>>) -> Result<(), Box<dyn std::error::Error>>{
         let distances = calculate_dist(coordinates.clone());
         self.distances = distances;
-        // TODO draw solution if provided
 
         let mut population = self.init_population();
         
@@ -114,8 +115,15 @@ impl EpigeneticSearch {
         pb.finish_and_clear();
 
         let best_cell: Cell = select_best_cell(population);
-        plot_solution(best_cell.solution, &coordinates)?;
         println!("Finished with Loss {}",&best_cell.fitness);
+
+        if self.best_solution.is_some() {
+            let opt_fitness = evaluate_solution(&self.best_solution.as_ref().unwrap(), &self.distances);
+            println!("Optimal solution has Loss {}",&opt_fitness);
+        }
+
+        // TODO also plot solution
+        plot_solution(best_cell.solution, &coordinates)?;
         Ok(())
     }
 
@@ -489,6 +497,8 @@ pub fn evaluate_solution(solution:&Vec<usize>, distances:&DMatrix<f32>) -> f32{
     for i in 1..solution.len(){
         let origin: usize = solution[i-1];
         let destination: usize = solution[i];
+        // println!("len {}", &distances.shape().0);
+        // println!("origin {}, dest {}", &origin, &destination);
         fitness += distances[(origin,destination)];
     }
 
