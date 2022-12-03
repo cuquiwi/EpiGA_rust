@@ -2,7 +2,8 @@ use indicatif::{ProgressBar, ProgressDrawTarget,ProgressStyle};
 use nalgebra::{Point2, DMatrix, distance, partial_cmp};
 use rand::{prelude::{SliceRandom, Distribution, ThreadRng}, distributions::Uniform};
 use std::{collections::{LinkedList, HashMap}, cmp::Ordering};
-use plotters::{prelude::{BitMapBackend,WHITE,RED, IntoDrawingArea, ChartBuilder, EmptyElement, Circle}, series::{PointSeries, LineSeries}};
+use plotters::{prelude::{BitMapBackend, IntoDrawingArea, ChartBuilder, EmptyElement, Circle}, series::{PointSeries, LineSeries}};
+use plotters::style::{BLUE, BLACK,WHITE,RED};
 use rayon::prelude::*;
 
 #[derive(Clone)]
@@ -123,7 +124,7 @@ impl EpigeneticSearch {
         }
 
         // TODO also plot solution
-        plot_solution(best_cell.solution, &coordinates)?;
+        plot_solution(best_cell.solution,&self.best_solution, &coordinates)?;
         Ok(())
     }
 
@@ -527,8 +528,8 @@ pub fn select_best_cell(population:Vec<Vec<Cell>>) -> Cell{
     best_cell
 }
 
-pub fn plot_solution(solution: Vec<usize>, coordinates: &Vec<Point2<f32>>) -> Result<(), Box<dyn std::error::Error>>{
-    let root = BitMapBackend::new("solution.png", (640, 480)).into_drawing_area();
+pub fn plot_solution(solution: Vec<usize>, optimal: &Option<Vec<usize>>, coordinates: &Vec<Point2<f32>>) -> Result<(), Box<dyn std::error::Error>>{
+    let root = BitMapBackend::new("solution.png", (2566, 1440)).into_drawing_area();
     root.fill(&WHITE)?;
     let root = root.margin(10,10,10,10);
 
@@ -553,6 +554,20 @@ pub fn plot_solution(solution: Vec<usize>, coordinates: &Vec<Point2<f32>>) -> Re
     let mut chart = ChartBuilder::on(&root)
         .build_cartesian_2d(*min_x_coord..*max_x_coord, *min_y_coord..*max_y_coord)?;
     
+    if optimal.is_some() {
+        let mut best_sol: Vec<(f32, f32)> = optimal.as_ref().unwrap()
+            .into_iter()
+            .map(|i| (coordinates[i.clone()].x, coordinates[i.clone()].y))
+            .collect();
+        best_sol.push((coordinates[0].x,coordinates[0].y));
+
+        chart.draw_series(LineSeries::new(
+            best_sol.clone(),
+            &BLUE,
+        ))?;
+        
+    }
+
     let mut sol: Vec<(f32, f32)> = solution.into_iter().map(|i| (coordinates[i].x, coordinates[i].y)).collect();
     sol.push((coordinates[0].x,coordinates[0].y));
 
@@ -565,7 +580,7 @@ pub fn plot_solution(solution: Vec<usize>, coordinates: &Vec<Point2<f32>>) -> Re
     chart.draw_series(PointSeries::of_element(
         sol.clone(),
         2,
-        &RED,
+        &BLACK,
         & |c,s,st| {
             return EmptyElement::at(c)
             + Circle::new((0,0), s, st.filled())

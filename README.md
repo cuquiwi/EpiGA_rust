@@ -15,4 +15,4 @@ TODO
 ----
 
  - [ ] Stop algorthm on fitness convergence
- - [ ] Plot solution when available
+ - [X] Plot solution when available
