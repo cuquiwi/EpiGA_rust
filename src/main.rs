@@ -75,7 +75,7 @@ fn load_problem_file(file_name: &str) -> Result<Vec<Point2<f32>>, Box<dyn Error>
     let reader = BufReader::new(file);
     let mut coords: Vec<Point2<f32>> = Vec::new();
 
-    let re = Regex::new(r"^[ \t]*\d+ -?\d+(\.\d+)? -?\d+(\.\d+)?[ \t]*$").unwrap();
+    let re = Regex::new(r"^[ \t]*\d+ +(-?\d+(?:\.\d+)?) +(-?\d+(?:\.\d+)?)[ \t]*$").unwrap();
     for line in reader.lines() {
         if line.is_ok(){
             let text = line?;
@@ -83,13 +83,15 @@ fn load_problem_file(file_name: &str) -> Result<Vec<Point2<f32>>, Box<dyn Error>
                 continue;
             }
 
-            let digits_text:Vec<&str> = text.trim().split(" ").collect();
-            let p1: f32 = digits_text[1].parse::<f32>()?;
-            let p2: f32 = digits_text[2].parse::<f32>()?;
+            let cap = re.captures(&text).unwrap();
+            // println!("{} -- {}", text, &cap[1]);
+            let p1: f32 = cap[1].parse::<f32>()?;
+            let p2: f32 = cap[2].parse::<f32>()?;
 
             coords.push(point![p1,p2]);
         }
     }
+    println!("Problem size: {}", coords.len());
     Ok(coords)
 }
 
